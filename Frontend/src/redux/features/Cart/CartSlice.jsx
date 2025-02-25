@@ -96,8 +96,6 @@
 
 
 
-
-
 import { createSlice } from "@reduxjs/toolkit";
 
 // Initial state for the cart
@@ -114,72 +112,48 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    // Action to add a product to the cart
+    // Add a product to the cart
     addToCart: (state, action) => {
-      const isExist = state.products.find((product) => product.id === action.payload.id);
-      if (!isExist) {
+      const existingProduct = state.products.find((product) => product.id === action.payload.id);
+      if (!existingProduct) {
         state.products.push({ ...action.payload, quantity: 1 });
       }
-      state.selectedItems = setSelectedItems(state);
-      state.totalPrice = setTotalPrice(state);
-      state.tax = setTax(state);
-      state.grandTotal = setGrandTotal(state);
+      updateCartState(state);
     },
 
-    // Action to update the quantity of an item in the cart
+    // Update product quantity (increment or decrement)
     updateQuantity: (state, action) => {
-      const { type, id } = action.payload; // Destructure type (increment/decrement) and id from payload
+      const { type, id } = action.payload;
       const product = state.products.find((product) => product.id === id);
       if (product) {
-        if (type === 'increment') {
+        if (type === "increment") {
           product.quantity += 1;
-        } else if (type === 'decrement') {
-          if (product.quantity > 1) {
-            product.quantity -= 1;
-          }
+        } else if (type === "decrement" && product.quantity > 1) {
+          product.quantity -= 1;
         }
       }
-      state.selectedItems = setSelectedItems(state);
-      state.totalPrice = setTotalPrice(state);
-      state.tax = setTax(state);
-      state.grandTotal = setGrandTotal(state);
+      updateCartState(state);
     },
 
-    // Action to remove a single product from the cart
+    // Remove a product from the cart
     removeFromCart: (state, action) => {
       state.products = state.products.filter((product) => product.id !== action.payload);
-      state.selectedItems = setSelectedItems(state);
-      state.totalPrice = setTotalPrice(state);
-      state.tax = setTax(state);
-      state.grandTotal = setGrandTotal(state);
+      updateCartState(state);
     },
 
-    // Action to clear the entire cart
+    // Clear the entire cart
     clearCart: (state) => {
-      state.products = [];
-      state.selectedItems = 0;
-      state.totalPrice = 0;
-      state.tax = 0;
-      state.grandTotal = 0;
-    }
+      Object.assign(state, initialState); // Reset to initial state
+    },
   },
 });
 
-// Helper functions to calculate the cart totals
-export const setSelectedItems = (state) => {
-  return state.products.reduce((total, product) => total + product.quantity, 0);
-};
-
-export const setTotalPrice = (state) => {
-  return state.products.reduce((total, product) => total + product.quantity * product.price, 0);
-};
-
-export const setTax = (state) => {
-  return setTotalPrice(state) * state.taxRate;
-};
-
-export const setGrandTotal = (state) => {
-  return setTotalPrice(state) + setTax(state);
+// Helper function to update cart totals
+const updateCartState = (state) => {
+  state.selectedItems = state.products.reduce((total, product) => total + product.quantity, 0);
+  state.totalPrice = state.products.reduce((total, product) => total + product.quantity * product.price, 0);
+  state.tax = parseFloat((state.totalPrice * state.taxRate).toFixed(2)); // Fix floating point issues
+  state.grandTotal = parseFloat((state.totalPrice + state.tax).toFixed(2));
 };
 
 export const { addToCart, updateQuantity, removeFromCart, clearCart } = cartSlice.actions;
